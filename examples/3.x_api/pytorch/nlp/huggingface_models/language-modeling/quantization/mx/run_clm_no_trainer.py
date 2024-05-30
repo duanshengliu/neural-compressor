@@ -96,7 +96,8 @@ def eval_func(user_model, tokenizer, args):
             self.tokenizer = tokenizer
             self.model = model.eval()
             self._batch_size = args.batch_size
-            self.buckets = list(sorted(args.buckets))
+            self.buckets = [256, 512]
+            #self.buckets = list(sorted(args.buckets))
             self.options = options
             self._device = "hpu"
             torch.set_grad_enabled(False)
@@ -159,20 +160,7 @@ def eval_func(user_model, tokenizer, args):
     lm = HabanaModelAdapter(tokenizer, user_model, args, options)
 
     eval_start = time.perf_counter()
-    if args.approach == "cast":
-        from neural_compressor.torch.amp import autocast
-        if args.precision == "fp8_e4m3":
-            dtype = torch.float8_e4m3fn
-        elif args.precision == "fp8_e5m2":
-            dtype = torch.float8_e5m2
-        elif args.precision == "fp16":
-            dtype = torch.float16
-        elif args.precision == "bf16":
-            dtype = torch.bfloat16
-        with autocast('hpu', dtype=dtype):
-            results = lm_eval.evaluator.evaluate(lm, lm_tasks, limit=args.limit)
-    else:
-        results = lm_eval.evaluator.evaluate(lm, lm_tasks, limit=args.limit)
+    results = lm_eval.evaluator.evaluate(lm, lm_tasks, limit=10)
     print(lm_eval.evaluator.make_table(results))
     eval_end = time.perf_counter()
     print("Duration:", eval_end - eval_start)
@@ -184,18 +172,11 @@ def eval_func(user_model, tokenizer, args):
     if local_rank in [-1, 0]:
         dumped = json.dumps(results, indent=2)
         accu_dict = {}
-        case_name = str(args.approach) + "-" + args.precision
         for task_name in args.tasks:
             if task_name == "wikitext":
                 print("Accuracy for %s is: %s" % (task_name, results["results"][task_name]["word_perplexity"]), flush=True)
-                accu_dict[task_name] = [args.model, case_name, results["results"][task_name]["word_perplexity"]]
             else:
                 print("Accuracy for %s is: %s" % (task_name, results["results"][task_name]["acc"]), flush=True)
-                accu_dict[task_name] = [args.model, case_name, results["results"][task_name]["acc"]]
-        accu_dict["duration"] = [args.model, case_name, results["duration"]]
-        if args.dump_to_excel:
-            save_to_excel(accu_dict)
-    return results["results"][task_name]["acc"]
 
 
 def get_user_model():
@@ -229,8 +210,8 @@ if "hpu" in device:
     show_msg()
 
 if args.accuracy:
-    eval_func(user_model, tokenizer=tokenizer, args=args)
-    import pdb;pdb.set_trace()
+    #eval_func(user_model, tokenizer=tokenizer, args=args)
+    #import pdb;pdb.set_trace()
     from intel_extension_for_transformers.transformers.llm.evaluation.lm_eval import evaluate, LMEvalParser
     eval_args = LMEvalParser(
         model="hf",
