@@ -33,11 +33,16 @@ parser.add_argument("--w_dtype", type=str, default="int8",
                     choices=["int8", "int4", "int2", "fp8_e5m2", "fp8_e4m3", "fp6_e3m2", 
                                                 "fp6_e2m3", "fp4", "float16", "bfloat12"],
                     help="weight data type")
+parser.add_argument("--out_dtype", type=str, default="bfloat16", 
+                    choices=["int8", "int4", "int2", "fp8_e5m2", "fp8_e4m3", "fp6_e3m2", 
+                                                "fp6_e2m3", "fp4", "float16", "bfloat12", "bfloat16", "float32"],
+                    help="weight data type")
 parser.add_argument("--act_dtype", type=str, default="int8", 
                     choices=["int8", "int4", "int2", "fp8_e5m2", "fp8_e4m3", "fp6_e3m2", 
                                                 "fp6_e2m3", "fp4", "float16", "bfloat12"],
                     help="input activation data type")
 parser.add_argument("--woq", action="store_true")
+parser.add_argument("--use_bf16", action="store_true")
 parser.add_argument("--accuracy", action="store_true")
 parser.add_argument("--performance", action="store_true")
 parser.add_argument("--iters", default=100, type=int,
@@ -149,7 +154,7 @@ def eval_func(user_model, tokenizer, args):
     lm = HabanaModelAdapter(tokenizer, user_model, args, options)
 
     eval_start = time.perf_counter()
-    results = lm_eval.evaluator.evaluate(lm, lm_tasks, limit=10)
+    results = lm_eval.evaluator.evaluate(lm, lm_tasks)
     print(lm_eval.evaluator.make_table(results))
     eval_end = time.perf_counter()
     print("Duration:", eval_end - eval_start)
@@ -186,9 +191,13 @@ def get_user_model():
     return user_model, tokenizer
 
 user_model, tokenizer = get_user_model()
+if args.use_bf16:
+    user_model = user_model.to(torch.bfloat16)
 if args.quantize:
     from neural_compressor.torch.quantization import MXQuantConfig, quantize
-    quant_config = MXQuantConfig(w_dtype=args.w_dtype, act_dtype=args.act_dtype, weight_only=args.woq)
+    quant_config = MXQuantConfig(w_dtype=args.w_dtype, act_dtype=args.act_dtype, weight_only=args.woq, out_dtype=args.out_dtype)
+    quant_config.set_local("lm_head", MXQuantConfig(w_dtype="float32", act_dtype=args.act_dtype, weight_only=args.woq))
+    quant_config.set_local("embed_out", MXQuantConfig(w_dtype="float32", act_dtype=args.act_dtype, weight_only=args.woq))
     user_model = quantize(model=user_model, quant_config=quant_config)
 
 if "hpu" in device:

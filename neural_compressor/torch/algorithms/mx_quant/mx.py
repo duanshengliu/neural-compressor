@@ -55,13 +55,16 @@ class MXLinear(torch.nn.Linear):
                     self.bias.data = quantize_elemwise_op(self.bias.data, mx_specs=self.mx_specs)
 
             # MX quantize everything along input size
-            self.weight.data = quantize_mx_op(
-                self.weight.data,
-                self.mx_specs.w_dtype,
-                self.mx_specs.round_method,
-                self.mx_specs.blocksize,
-                axes=[-1],
-            )
+            if self.mx_specs.w_dtype != "float32":
+                self.weight.data = quantize_mx_op(
+                    self.weight.data,
+                    self.mx_specs.w_dtype,
+                    self.mx_specs.round_method,
+                    self.mx_specs.blocksize,
+                    axes=[-1],
+                )
+            else:
+                print(self.name)
 
     def append_name(self, postfix):
         self.name += postfix
@@ -153,6 +156,7 @@ class MXQuantizer(Quantizer):
                 mx_specs=config[(name, type(m).__name__)],
                 name=name,
             )
+            new_module.to(device=m.weight.device, dtype=m.weight.dtype)
             new_module.load_state_dict(tmp_stat)
             new_module.apply_mx_specs()
             if name == "":
