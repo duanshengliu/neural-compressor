@@ -23,6 +23,7 @@ from typing import Any, Dict, Tuple
 
 import torch
 
+import neural_compressor.torch.algorithms.weight_only.modules as woq_modules
 from neural_compressor.torch.utils import logger
 from neural_compressor.torch.utils.auto_accelerator import auto_detect_accelerator
 
@@ -175,6 +176,15 @@ class HQQTensorHandle:
         return W_r
 
 
+import dataclasses
+
+
+@dataclasses.dataclass
+class HQQLinearMetaData:
+    bits: int
+    group_size: int
+
+
 class HQQLinear(torch.nn.Linear):
 
     def __init__(
@@ -189,6 +199,7 @@ class HQQLinear(torch.nn.Linear):
         super().__init__(in_features, out_features, bias, device, dtype)
         self.q_weight = q_weight
         self.quantized = q_weight is not None
+        self._q_meta = None
 
     @dump_elapsed_time("Quantize linear module into HQQ module.")
     def quantize_weight(
@@ -246,6 +257,14 @@ class HQQLinear(torch.nn.Linear):
             out += self.bias
         return out
 
+    @property
+    def q_meta(self):
+        return self._q_meta
+
+    @q_meta.setter
+    def q_meta(self, q_meta: HQQLinearMetaData):
+        self._q_meta = q_meta
+
     @classmethod
     def from_float(
         cls,
@@ -267,6 +286,8 @@ class HQQLinear(torch.nn.Linear):
         new_mod.out_features = float_module.out_features
         new_mod.weight = None
         new_mod.bias = float_module.bias
+        q_meta = HQQLinearMetaData(bits=quant_config.weight.nbits, group_size=quant_config.weight.group_size)
+        new_mod.q_meta = q_meta
         if hqq_global_option.use_half and new_mod.bias is not None:
             new_mod.bias = torch.nn.Parameter(float_module.bias.half())
         # TODO: refine it to support cuda/hpu/cpu
@@ -278,3 +299,27 @@ class HQQLinear(torch.nn.Linear):
         # !!! Delete the float explicitly to save memory
         del float_module
         return new_mod
+
+    @classmethod
+    def export_to_woq_linear(cls, mod: "HQQLinear") -> woq_modules.WeightOnlyLinear:
+        woq_linear = woq_modules.WeightOnlyLinear(
+            in_features=mod.in_features,
+            out_features=mod.out_features,
+            dtype="int",
+            bits=mod.q_meta.bits,
+            group_size=mod.q_meta.group_size,
+            zp=True,
+            bias=mod.bias is not None,
+            use_optimum_format=True,
+            device=str(mod.q_weight.val.device),
+        )
+        # in_feats, out_feats
+        int_weight_for_woq_linear = Packer.get_unpack_fn(mod.q_meta.bits)(mod.q_weight.val)
+        print(f"int_weight_for_woq_linear: {int_weight_for_woq_linear}")
+        woq_linear.pack(
+            int_weight=int_weight_for_woq_linear.transpose(0, 1),
+            scale=mod.q_weight.scale.transpose(0, 1),
+            zp=mod.q_weight.zero.transpose(0, 1),
+            bias=mod.bias,
+        )
+        return woq_linear

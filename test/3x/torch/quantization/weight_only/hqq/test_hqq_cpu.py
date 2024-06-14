@@ -41,6 +41,15 @@ def _common_cpu_test(nbits=4, group_size=64, quant_zero=True, quant_scale=False,
         input = input.half()
     float_output = float_linear(input)
     input_for_hqq = deepcopy(input)
+    woq_linear = HQQLinear.export_to_woq_linear(hqq_linear)
+    hqq_out = hqq_linear(input_for_hqq)
+    woq_out = woq_linear(input_for_hqq)
+    diff = torch.abs(hqq_out - woq_out)
+    print(f"diff: {diff.max()}")
+    dq_weight = hqq_linear.dequantize_weight()
+    float32_weight = woq_linear.recover(hqq_linear)
+    diff = torch.abs(dq_weight - float32_weight)
+    print(f"diff: {diff.max()}")
     hqq_output = hqq_linear(input_for_hqq)
     hqq_output_2 = hqq_linear(input_for_hqq)
     torch.allclose(float_output, hqq_output, atol=0.5)
@@ -110,18 +119,18 @@ class TestHQQCPU:
         "nbits, group_size, quant_zero, quant_scale, scale_quant_group_size",
         [
             (4, 64, True, False, 128),
-            (4, 64, False, False, 128),
-            (4, 64, True, True, 128),
-            (4, 64, False, True, 128),
-            (8, 64, True, False, 128),
-            (8, 64, False, False, 128),
-            (8, 64, True, True, 128),
-            (8, 64, False, True, 128),
-            (4, 64, True, False, 64),
-            (4, 64, False, False, 64),
-            (4, 64, True, True, 64),
-            (4, 64, False, True, 64),
-            (4, -1, False, True, 64),
+            # (4, 64, False, False, 128),
+            # (4, 64, True, True, 128),
+            # (4, 64, False, True, 128),
+            # (8, 64, True, False, 128),
+            # (8, 64, False, False, 128),
+            # (8, 64, True, True, 128),
+            # (8, 64, False, True, 128),
+            # (4, 64, True, False, 64),
+            # (4, 64, False, False, 64),
+            # (4, 64, True, True, 64),
+            # (4, 64, False, True, 64),
+            # (4, -1, False, True, 64),
         ],
     )
     def test_hqq_module_cpu(

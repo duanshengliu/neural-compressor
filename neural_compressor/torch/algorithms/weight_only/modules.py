@@ -111,6 +111,7 @@ class WeightOnlyLinear(torch.nn.Module):
                     dtype=self.compression_dtype,
                 ).to(device),
             )
+            # [K/gs, N/n_pack]
             self.register_buffer(
                 "qzeros",
                 torch.zeros(
@@ -173,7 +174,9 @@ class WeightOnlyLinear(torch.nn.Module):
     def pack(self, int_weight, scale, zp, bias, g_idx=None):
         if self.use_optimum_format:
             self.scales = self.scales.T.contiguous()
+            # [K/gs, N] -> [N, K/gs]
             self.qweight = self.qweight.T.contiguous()
+            # [K/gs, N/n_pack] -> [N/n_pack, K/gs]
             self.qzeros = self.qzeros.T.contiguous()
         int_weight = int_weight.to(self.device)
         if self.use_optimum_format and zp is None:
@@ -202,18 +205,24 @@ class WeightOnlyLinear(torch.nn.Module):
         assert origin_shape[0] == target_shape[0], "output channels mismatch, please check."
 
         # pack weight
-        self.qweight.copy_(self.pack_tensor(int_weight))
+        # int_weight [N, K] -> [N, K/n_pack]
+        packed_int_weight = self.pack_tensor(int_weight)
+        self.qweight.copy_(packed_int_weight)
         if not self.use_optimum_format and self.compression_dim == 0:
             self.qweight = self.qweight.T.contiguous()
 
         if zp is not None:
             zp = zp.to(self.device)
-            if self.use_optimum_format:
-                zp -= 1
+            # if self.use_optimum_format:
+            #     zp -= 1
             if self.use_optimum_format or self.compression_dim == 0:
+                # [N, K/gs] -> [K/gs, N]
                 zp = zp.T.contiguous()
+                # [N/n_pack, K/gs] -> [K/gs, N/n_pack]
                 self.qzeros = self.qzeros.T.contiguous()
             assert hasattr(self, "qzeros"), "zp is not set when initializing."
+            # num_of_rows_in_packed_data <-> n_pack = self.compress_bits // self.bits; 32 // 4 -> 8
+            # [K/gs, N/n_pack] <- [K/gs, N]
             self.qzeros.copy_(self.pack_tensor(zp))
             if self.use_optimum_format or self.compression_dim == 0:
                 self.qzeros = self.qzeros.T.contiguous()
