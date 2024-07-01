@@ -26,6 +26,7 @@ from accelerate.utils import set_module_tensor_to_device
 from transformers import AutoConfig, AutoModelForCausalLM
 from transformers.models.auto.auto_factory import _BaseAutoModelClass
 
+import neural_compressor.common.utils as inc_uitls
 from neural_compressor.common import options
 from neural_compressor.torch.algorithms.weight_only.modules import WeightOnlyLinear
 
@@ -234,6 +235,10 @@ def load_value(model, param_name, path):
     return value
 
 
+import neural_compressor.common.utils as inc_utils
+
+
+@inc_utils.dump_elapsed_time()
 def load_module(model, module_name, path, device="cpu"):
     module = get_module(model, module_name)
     for n, p in module.named_parameters():

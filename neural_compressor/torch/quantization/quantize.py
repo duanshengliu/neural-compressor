@@ -131,8 +131,8 @@ def prepare(
         assert isinstance(
             quant_config, BaseConfig
         ), f"Please pass a dict or config instance as the quantization configuration, but got {type(quant_config)}."
-    logger.info("Prepare model with config:")
-    logger.info(quant_config.to_dict())
+    # logger.info("Prepare model with config:")
+    # logger.info(quant_config.to_dict())
 
     # select quantization algo according to config
     if is_ipex_available and (
@@ -194,8 +194,8 @@ def convert(
         assert isinstance(
             quant_config, BaseConfig
         ), f"Please pass a dict or config instance as the quantization configuration, but got {type(quant_config)}."
-    logger.info("Convert model with config:")
-    logger.info(quant_config.to_dict())
+    # logger.info("Convert model with config:")
+    # logger.info(quant_config.to_dict())
 
     # select quantization algo according to config
     if is_ipex_available and (

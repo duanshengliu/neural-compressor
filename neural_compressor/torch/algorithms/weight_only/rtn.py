@@ -25,6 +25,7 @@ from collections import OrderedDict
 
 import torch
 
+import neural_compressor.common.utils as inc_utils
 from neural_compressor.torch.algorithms import Quantizer
 from neural_compressor.torch.utils import get_accelerator, is_transformers_imported, logger, set_module
 
@@ -43,6 +44,7 @@ class RTNQuantizer(Quantizer):
         """
         super().__init__(quant_config)
 
+    @inc_utils.dump_elapsed_time("RTN Quantizer prepare")
     @torch.no_grad()
     def prepare(self, model, *args, **kwargs):
         """Prepares a given model for quantization.
@@ -54,6 +56,7 @@ class RTNQuantizer(Quantizer):
         """
         return model
 
+    @inc_utils.dump_elapsed_time("RTN Quantizer Convert")
     @torch.no_grad()
     def convert(
         self,
@@ -183,6 +186,7 @@ class RTNQuantizer(Quantizer):
                 weight = m.weight.detach()
             if use_mse_search:
                 quantile = search_clip(m, bits, group_size, scheme, dtype, use_full_range)
+            weight = weight.contiguous()
             int_weight, scale, zp = quant_tensor(
                 weight,
                 dtype=dtype,
@@ -208,32 +212,30 @@ class RTNQuantizer(Quantizer):
                 zp = zp.t_().contiguous() if zp is not None else zp
             from .modules import WeightOnlyLinear
 
-            new_module = WeightOnlyLinear(
-                in_features,
-                out_features,
-                dtype=dtype,
-                bits=bits,
-                group_size=group_size,
-                zp=zp is not None,
-                bias=m.bias is not None,
-                use_optimum_format=use_optimum_format,
-                device=device,
-            )
-            new_module.pack(int_weight, scale, zp, m.bias)
-
-            if use_layer_wise:
-                # save and clean weight
-                from neural_compressor.torch.algorithms.layer_wise.utils import clean_module_weight
-
-                torch.save(new_module.state_dict(), os.path.join(LWQ_WORKSPACE, f"{name}.pt"))
-                clean_module_weight(new_module)
-                clean_module_weight(m)
-                del m
-                gc.collect()
-            if name == "":
-                return new_module
-            else:
-                set_module(model, name, new_module)
+            # new_module = WeightOnlyLinear(
+            #     in_features,
+            #     out_features,
+            #     dtype=dtype,
+            #     bits=bits,
+            #     group_size=group_size,
+            #     zp=zp is not None,
+            #     bias=m.bias is not None,
+            #     use_optimum_format=use_optimum_format,
+            #     device=device,
+            # )
+            # new_module.pack(int_weight, scale, zp, m.bias)
+            # if use_layer_wise:
+            #     # save and clean weight
+            #     from neural_compressor.torch.algorithms.layer_wise.utils import clean_module_weight
+            #     torch.save(new_module.state_dict(), os.path.join(LWQ_WORKSPACE, f"{name}.pt"))
+            #     clean_module_weight(new_module)
+            #     clean_module_weight(m)
+            #     del m
+            #     gc.collect()
+            # if name == "":
+            #     return new_module
+            # else:
+            #     set_module(model, name, new_module)
 
         if use_layer_wise:
             # register hooks

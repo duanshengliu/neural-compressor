@@ -14,6 +14,7 @@
 
 import torch
 
+import neural_compressor.common.utils as inc_utils
 from neural_compressor.torch.utils import accelerator, device_synchronize, logger
 
 __all__ = [
@@ -246,6 +247,7 @@ def qdq_weight_actor(weight, bits, scheme, quantile=1.0, dtype="int", return_int
 
 
 @device_synchronize
+@inc_utils.dump_elapsed_time()
 def quant_tensor(
     weight,
     bits=4,

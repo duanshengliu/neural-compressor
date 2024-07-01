@@ -43,10 +43,14 @@ class TestRTNQuant:
         # record label for comparison
         self.label = self.tiny_gptj(self.example_inputs)[0]
         # test_default_config
+        import neural_compressor.common.utils.utility as inc_utils
+
+        inc_utils.time_record.clear()
         model = copy.deepcopy(self.tiny_gptj)
         quant_config = get_default_rtn_config()
         model = prepare(model, quant_config)
         model = convert(model)
+        inc_utils.summary_time_usage()
         # record q_label for comparison
         self.q_label = model(self.example_inputs)[0]
 
@@ -139,7 +143,10 @@ class TestRTNQuant:
             assert torch.allclose(atol_false, atol_true, atol=0.012), "atol is very close, double checked the logic."
 
     def test_layer_wise(self):
+        import neural_compressor.common.utils.utility as inc_utils
         from neural_compressor.torch.algorithms.layer_wise import load_empty_model
+
+        inc_utils.time_record.clear()
 
         model = load_empty_model("hf-internal-testing/tiny-random-GPTJForCausalLM")
         quant_config = RTNConfig(
@@ -147,8 +154,11 @@ class TestRTNQuant:
             model_path="hf-internal-testing/tiny-random-GPTJForCausalLM",
         )
         model = prepare(model, quant_config)
+        print(">>>>>>>>>>>>>>>>>>>>>>>>>")
         model = convert(model)
+        print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
         out = model(self.example_inputs)[0]
+        inc_utils.summary_time_usage()
         assert torch.equal(out, self.q_label), "use_layer_wise=True output should be same. Please double check."
 
     @pytest.mark.parametrize(

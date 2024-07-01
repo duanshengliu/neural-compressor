@@ -19,7 +19,7 @@ import collections
 import importlib
 import subprocess
 import time
-from typing import Dict
+from typing import Dict, Union
 
 import cpuinfo
 import psutil
@@ -156,6 +156,9 @@ class CpuInfo(object):
         return 0
 
 
+time_record: Dict[str, Union[int, float]] = collections.defaultdict(list)
+
+
 def dump_elapsed_time(customized_msg=""):
     """Get the elapsed time for decorated functions.
 
@@ -168,15 +171,23 @@ def dump_elapsed_time(customized_msg=""):
             start = time.time()
             res = func(*args, **kwargs)
             end = time.time()
-            logger.info(
-                "%s elapsed time: %s ms"
-                % (customized_msg if customized_msg else func.__qualname__, round((end - start) * 1000, 2))
-            )
+            qual = customized_msg if customized_msg else func.__qualname__
+            _dur = round((end - start) * 1000, 2)
+            logger.debug("%s elapsed time: %s ms" % (qual, _dur))
+            time_record[qual].append(_dur)
             return res
 
         return fi
 
     return f
+
+
+def summary_time_usage():
+    logger.info("==----------------------------------------------==")
+    logger.info("               Time usage summary")
+    for qual, time_list in time_record.items():
+        logger.info(f"|| {qual}, total time: {sum(time_list)} ms")
+    logger.info("==----------------------------------------------==")
 
 
 def set_random_seed(seed: int):
