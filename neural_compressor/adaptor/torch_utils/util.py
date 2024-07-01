@@ -16,9 +16,10 @@
 # limitations under the License.
 """Util Class and Functions."""
 import copy
+import gc
 import json
 import re
-from collections import UserDict
+from collections import UserDict, namedtuple
 from functools import partial
 
 import numpy as np
@@ -181,12 +182,47 @@ def append_attr(fx_model, model, fx_white_list=[]):
     attr_names = []
     if hasattr(fx_model, "module") and hasattr(fx_model.module, "weight"):
         if not isinstance(fx_model.module.weight, torch.Tensor):
-            fx_model.weight = fx_model.module.weight()
+            # set some weight attributions which are called frequently during inference.
+            Weight = namedtuple("weight", ["shape", "dtype", "size"])
+            tmp = fx_model.module.weight()
+            shape, dtype = copy.deepcopy(tmp.shape), copy.deepcopy(tmp.dtype)
+
+            # tmp.size will cause abnormal memory usage
+            def get_size():
+                return shape
+
+            del tmp
+            gc.collect()
+            weight = Weight(
+                shape=shape,
+                dtype=dtype,
+                size=get_size,
+            )
+            fx_model.weight = weight
         else:
             fx_model.weight = fx_model.module.weight
         if hasattr(fx_model.module, "bias"):
             if not isinstance(fx_model.module.bias, torch.Tensor) and fx_model.module.bias is not None:
-                fx_model.bias = fx_model.module.bias()
+                # set some bias attributions which are called frequently during inference.
+                tmp = fx_model.module.bias()
+                if tmp is not None:
+                    shape, dtype = copy.deepcopy(tmp.shape), copy.deepcopy(tmp.dtype)
+
+                    # tmp.size will cause abnormal memory usage
+                    def get_size():
+                        return shape
+
+                    del tmp
+                    gc.collect()
+                    Bias = namedtuple("bias", ["shape", "dtype", "size"])
+                    bias = Bias(
+                        shape=shape,
+                        dtype=dtype,
+                        size=get_size,
+                    )
+                    fx_model.bias = bias
+                else:
+                    fx_model.bias = None
             else:
                 fx_model.bias = fx_model.module.bias
     for i in org_attr:
@@ -204,8 +240,7 @@ def append_attr(fx_model, model, fx_white_list=[]):
             attr_names.append(i)
     for name in attr_names:
         attr = getattr(model, name, None)
-
-        if isinstance(attr, torch.nn.Module) or isinstance(attr, torch.quantization.qconfig.QConfig):
+        if isinstance(attr, (torch.nn.Module, torch.quantization.qconfig.QConfig)):
             continue
         setattr(fx_model, name, attr)
     return fx_model
