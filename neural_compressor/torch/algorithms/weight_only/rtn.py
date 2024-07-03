@@ -24,7 +24,7 @@ import os
 from collections import OrderedDict
 
 import torch
-
+from neural_compressor.torch.algorithms.layer_wise.utils import LWQ_WORKSPACE, get_path, load_module
 import neural_compressor.common.utils as inc_utils
 from neural_compressor.torch.algorithms import Quantizer
 from neural_compressor.torch.utils import get_accelerator, is_transformers_imported, logger, set_module
@@ -34,6 +34,22 @@ from .utility import cast_fp8, quant_tensor, search_clip
 if is_transformers_imported():
     import transformers
 
+@inc_utils.dump_elapsed_time()
+def _save_one_module(new_module, name):
+    torch.save(new_module.state_dict(), os.path.join(LWQ_WORKSPACE, f"{name}.pt"))
+    
+
+@inc_utils.dump_elapsed_time()
+def _clean_module(name, new_module, m):
+    # # save and clean weight
+    # from neural_compressor.torch.algorithms.layer_wise.utils import clean_module_weight
+    # _save_one_module(new_module, name)
+    # clean_module_weight(new_module)
+    # clean_module_weight(m)
+    # del m
+    # gc.collect()
+    new_module = new_module.to_empty(device=torch.device("meta"))
+    m = m.to_empty(device=torch.device("meta"))
 
 class RTNQuantizer(Quantizer):
     def __init__(self, quant_config: OrderedDict = {}):
@@ -115,7 +131,15 @@ class RTNQuantizer(Quantizer):
             "double_quant_group_size": kwargs.get("double_quant_group_size", 256),
         }
         use_optimum_format = kwargs.get("use_optimum_format", True)
+        MAX_NUM_MODUBLES = 100
+        MODULE_INDEX = 0
         for name, m in model.named_modules():
+            # if MODULE_INDEX >= MAX_NUM_MODUBLES:
+            #     break
+            # MODULE_INDEX += 1
+            # if "layers.10" in name:
+            #     logger.info("Early stop....... %s.", name)
+            #     break
             if not isinstance(m, supported_layers):
                 continue
             if name in weight_config:  # pragma: no cover
@@ -129,7 +153,7 @@ class RTNQuantizer(Quantizer):
                     m.weight = cast_fp8(m.weight, dtype, use_qdq=True)
                     continue
                 ####
-                logger.debug("Apply RTN on module %s.", name)
+                logger.info("Apply RTN on module %s.", name)
                 bits = weight_config[name].get("bits", 4)
                 group_size = weight_config[name]["group_size"]
                 scheme = weight_config[name]["scheme"]
@@ -164,7 +188,7 @@ class RTNQuantizer(Quantizer):
 
             if use_layer_wise:
                 from neural_compressor.common.utils import DEFAULT_WORKSPACE
-                from neural_compressor.torch.algorithms.layer_wise.utils import LWQ_WORKSPACE, get_path, load_module
+                
 
                 os.makedirs(LWQ_WORKSPACE, exist_ok=True)
                 if model_path == "":
@@ -211,31 +235,26 @@ class RTNQuantizer(Quantizer):
                 scale = scale.t_().contiguous()
                 zp = zp.t_().contiguous() if zp is not None else zp
             from .modules import WeightOnlyLinear
-
-            # new_module = WeightOnlyLinear(
-            #     in_features,
-            #     out_features,
-            #     dtype=dtype,
-            #     bits=bits,
-            #     group_size=group_size,
-            #     zp=zp is not None,
-            #     bias=m.bias is not None,
-            #     use_optimum_format=use_optimum_format,
-            #     device=device,
-            # )
-            # new_module.pack(int_weight, scale, zp, m.bias)
-            # if use_layer_wise:
-            #     # save and clean weight
-            #     from neural_compressor.torch.algorithms.layer_wise.utils import clean_module_weight
-            #     torch.save(new_module.state_dict(), os.path.join(LWQ_WORKSPACE, f"{name}.pt"))
-            #     clean_module_weight(new_module)
-            #     clean_module_weight(m)
-            #     del m
-            #     gc.collect()
-            # if name == "":
-            #     return new_module
-            # else:
-            #     set_module(model, name, new_module)
+            new_module = WeightOnlyLinear(
+                in_features,
+                out_features,
+                dtype=dtype,
+                bits=bits,
+                group_size=group_size,
+                zp=zp is not None,
+                bias=m.bias is not None,
+                use_optimum_format=use_optimum_format,
+                device=device,
+            )
+            new_module.pack(int_weight, scale, zp, m.bias)
+            if use_layer_wise:
+                # _clean_module(name, new_module, m)
+                new_module = new_module.to_empty(device=torch.device("meta"))
+                m = m.to_empty(device=torch.device("meta"))
+            if name == "":
+                return new_module
+            else:
+                set_module(model, name, new_module)
 
         if use_layer_wise:
             # register hooks

@@ -159,7 +159,7 @@ class CpuInfo(object):
 time_record: Dict[str, Union[int, float]] = collections.defaultdict(list)
 
 
-def dump_elapsed_time(customized_msg=""):
+def dump_elapsed_time(customized_msg="", pre_fix=""):
     """Get the elapsed time for decorated functions.
 
     Args:
@@ -171,7 +171,7 @@ def dump_elapsed_time(customized_msg=""):
             start = time.time()
             res = func(*args, **kwargs)
             end = time.time()
-            qual = customized_msg if customized_msg else func.__qualname__
+            qual = pre_fix + customized_msg if customized_msg else func.__qualname__
             _dur = round((end - start) * 1000, 2)
             logger.debug("%s elapsed time: %s ms" % (qual, _dur))
             time_record[qual].append(_dur)
@@ -183,8 +183,7 @@ def dump_elapsed_time(customized_msg=""):
 
 
 def summary_time_usage():
-    logger.info("==----------------------------------------------==")
-    logger.info("               Time usage summary")
+    logger.info("==--------------Time usage summary--------------==")
     for qual, time_list in time_record.items():
         logger.info(f"|| {qual}, total time: {sum(time_list)} ms")
     logger.info("==----------------------------------------------==")

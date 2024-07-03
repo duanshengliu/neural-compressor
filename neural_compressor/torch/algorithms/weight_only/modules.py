@@ -45,6 +45,8 @@ class QDQLayer(torch.nn.Module):
         X = self.dequant(X)
         return X
 
+import neural_compressor.common.utils.utility as inc_utils
+
 
 class WeightOnlyLinear(torch.nn.Module):
     def __init__(
@@ -170,6 +172,7 @@ class WeightOnlyLinear(torch.nn.Module):
         else:
             self.g_idx = None
 
+    @inc_utils.dump_elapsed_time("WOQ Packing")
     def pack(self, int_weight, scale, zp, bias, g_idx=None):
         if self.use_optimum_format:
             self.scales = self.scales.T.contiguous()

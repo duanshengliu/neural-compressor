@@ -288,6 +288,9 @@ def register_weight_hooks(model, path, device="cpu", clean_weight=True, saved_pa
     return handle
 
 
+import neural_compressor.common.utils as inc_utils
+
+@inc_utils.dump_elapsed_time()
 def clean_module_weight(module):
     if isinstance(module, QDQLayer):
         submodule = module.module
