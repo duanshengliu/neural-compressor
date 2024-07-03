@@ -169,7 +169,7 @@ class RTNQuantizer(Quantizer):
                 log_msg += f", use_full_range={use_full_range}"
             if dtype == "fp32":
                 continue
-            logger.debug(f"RTN quantized module:{name, m}")
+            logger.info(f"RTN quantized module:{name, m}")
             logger.debug(log_msg)
             # for only group_dim is 0 or only `transformers.Conv1D`, we need transpose weight.
             if is_transformers_imported():

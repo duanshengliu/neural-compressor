@@ -144,6 +144,7 @@ class TestRTNQuant:
             "hf-internal-testing/tiny-random-GPTJForCausalLM",
             device_map=device,
         )
+        print(gptj_model)
         lm_head_id = id(gptj_model.lm_head.weight)
         assert id(gptj_model.transformer.wte.weight) != lm_head_id, "The lm_head weight is tied, please check!"
         quant_config = RTNConfig(quant_lm_head=True)
