@@ -26,7 +26,7 @@ from neural_compressor.torch.algorithms.layer_wise import load_empty_model
 MODEL_NAME = (
     "/home/sdp/.cache/huggingface/hub/models--Qwen--Qwen2-1.5B/snapshots/8a16abf2848eda07cc5253dec660bf1ce007ad7a"
 )
-# MODEL_NAME = "/home/sdp/.cache/huggingface/hub/models--meta-llama--Llama-2-7b-chat-hf/snapshots/f5db02db724555f92da89c216ac04704f23d4590/"
+MODEL_NAME = "/home/sdp/.cache/huggingface/hub/models--meta-llama--Llama-2-7b-chat-hf/snapshots/f5db02db724555f92da89c216ac04704f23d4590/"
 # model_name = "hf-internal-testing/tiny-random-GPTJForCausalLM"
 
 
@@ -181,6 +181,9 @@ if __name__ == "__main__":
     main()
 
 """
+
+
+
 W/o Layer wise
 Time Statistics:
 RTN Quantizer prepare:
@@ -280,9 +283,50 @@ RTN Quantizer Convert:
   Average time: 36439.28 ms
   Standard deviation: 1661.89 ms
 
+(llm) sdp@9049fa09fd7b:inc$ p parse_log.py ./_qwen_w_reshape_log 
+W/ Layer wise + reshape
+Time Statistics:
+RTN Quantizer prepare:
+  Average time: 0.00 ms
+  Standard deviation: 0.00 ms
+_save_one_module:
+  Average time: 1282.58 ms
+  Standard deviation: 196.93 ms
+load_module:
+  Average time: 4799.66 ms
+  Standard deviation: 481.68 ms
+quant_tensor:
+  Average time: 4612.33 ms
+  Standard deviation: 151.36 ms
+WOQ Packing:
+  Average time: 7366.20 ms
+  Standard deviation: 240.01 ms
+RTN Quantizer Convert:
+  Average time: 18390.69 ms
+  Standard deviation: 937.48 ms
+
+W/ Layer wise + reshape + w/ numba
+Time Statistics:
+RTN Quantizer prepare:
+  Average time: 0.01 ms
+  Standard deviation: 0.01 ms
+_save_one_module:
+  Average time: 1183.41 ms
+  Standard deviation: 93.39 ms
+load_module:
+  Average time: 5163.99 ms
+  Standard deviation: 353.98 ms
+quant_tensor:
+  Average time: 4610.58 ms
+  Standard deviation: 73.09 ms
+WOQ Packing:
+  Average time: 6768.24 ms
+  Standard deviation: 353.41 ms
+RTN Quantizer Convert:
+  Average time: 18055.86 ms
+  Standard deviation: 610.50 ms
 
 layer- llama-2-7b-chat-hf
-(llm) (base) sdp@:inc$ python parse_log.py _10time_7b_with_5cores_with_layer
 Time Statistics:
 RTN Quantizer prepare:
   Average time: 0.01 ms
@@ -305,7 +349,6 @@ RTN Quantizer Convert:
 
 layer- llama-2-7b-chat-hf
 W/ Layer wise + NUMBA
-(llm) (base) sdp@9049fa09fd7b:inc$ python parse_log.py ./__llama7b_with_numba_log 
 Time Statistics:
 RTN Quantizer prepare:
   Average time: 0.01 ms
@@ -326,6 +369,27 @@ RTN Quantizer Convert:
   Average time: 93681.94 ms
   Standard deviation: 3076.35 ms
 
+layer- llama-2-7b-chat-hf
+W/ Layer wise + numba.jit(parallel=True, fastmath=True)
+Time Statistics:
+RTN Quantizer prepare:
+  Average time: 0.01 ms
+  Standard deviation: 0.00 ms
+_save_one_module:
+  Average time: 4415.74 ms
+  Standard deviation: 229.73 ms
+load_module:
+  Average time: 11921.39 ms
+  Standard deviation: 1052.78 ms
+quant_tensor:
+  Average time: 18339.71 ms
+  Standard deviation: 122.76 ms
+WOQ Packing:
+  Average time: 29726.38 ms
+  Standard deviation: 1559.86 ms
+RTN Quantizer Convert:
+  Average time: 65778.12 ms
+  Standard deviation: 2635.20 ms
 
 W/ Layer-wise
 (Pdb) print(prof.key_averages().table(sort_by="cpu_time_total"))

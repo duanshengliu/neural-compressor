@@ -303,6 +303,37 @@ class WeightOnlyLinear(torch.nn.Module):
                 unpacked_tensor[:, index].copy_(tmp.type(target_dtype))
                 accelerator.synchronize()
         return unpacked_tensor
+    
+    @staticmethod
+    @numba.jit(nopython=True, parallel=True, fastmath=True)
+    def _pack_tensor_with_numpy_reshape(raw_array: np.ndarray, n_pack: int, bits: int, compression_dtype=np.int32):
+        target_len = (raw_array.shape[1] + n_pack - 1) // n_pack
+        target_dtype = compression_dtype
+        reshaped = raw_array.reshape(-1, n_pack)
+        packed_array = np.zeros(reshaped.shape[0], dtype=target_dtype)
+        for i in range(n_pack):
+            packed_array |= (reshaped[:, i].astype(target_dtype) << (bits * i))
+        return packed_array.reshape((raw_array.shape[0], target_len))
+            
+    def pack_tensor_with_numpy_reshape_numba(self, raw_tensor):
+        raw_array = raw_tensor.cpu().numpy()
+        packed_array = self._pack_tensor_with_numpy_reshape(raw_array, self.n_pack, self.bits)
+        packed_tensor = torch.from_numpy(packed_array)
+        return packed_tensor
+    
+    
+    def pack_tensor_with_numpy_reshape(self, raw_tensor):
+        raw_array = raw_tensor.cpu().numpy()
+        target_len = np.ceil(raw_array.shape[1] / self.n_pack).astype(int)
+        target_dtype = torch.tensor(0, dtype=self.compression_dtype).numpy().dtype
+        reshaped = raw_array.reshape(-1, self.n_pack)
+        packed_array = np.zeros(reshaped.shape[0], dtype=target_dtype)
+        for i in range(self.n_pack):
+            packed_array |= (reshaped[:, i].astype(target_dtype) << (self.bits * i))
+        
+        packed_tensor = torch.from_numpy(packed_array.reshape((raw_array.shape[0], target_len))).to(device=raw_tensor.device)
+        return packed_tensor
+
 
     @staticmethod
     @numba.jit(nopython=True, parallel=True, fastmath=True)
@@ -378,6 +409,10 @@ class WeightOnlyLinear(torch.nn.Module):
         return unpacked_tensor
 
     def pack_tensor(self, raw_tensor):
+        if os.environ.get("USE_RESHAPE", "0") == "1":
+            if os.environ.get("USE_NUMBA", "0") == "1":
+                return self.pack_tensor_with_numpy_reshape_numba(raw_tensor)
+            return self.pack_tensor_with_numpy_reshape(raw_tensor)
         if "cuda" in self.device:
             return self.pack_tensor_with_torch(raw_tensor)
         else:
