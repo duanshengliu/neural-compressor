@@ -323,6 +323,23 @@ class WeightOnlyLinear(torch.nn.Module):
         return packed_tensor
 
     @staticmethod
+    def pack_tensor_with_numpy_reshape_version(
+        raw_tensor, n_pack: int, bits: int, compression_dtype: torch.dtype = torch.int32
+    ):
+        raw_array = raw_tensor.cpu().numpy()
+        target_len = np.ceil(raw_array.shape[1] / n_pack).astype(int)
+        target_dtype = torch.tensor(0, dtype=compression_dtype).numpy().dtype
+        reshaped = raw_array.reshape(-1, n_pack)
+        packed_array = np.zeros(reshaped.shape[0], dtype=target_dtype)
+        for i in range(n_pack):
+            packed_array |= reshaped[:, i].astype(target_dtype) << (bits * i)
+
+        packed_tensor = torch.from_numpy(packed_array.reshape((raw_array.shape[0], target_len))).to(
+            device=raw_tensor.device
+        )
+        return packed_tensor
+
+    @staticmethod
     def pack_tensor_with_numpy_static_numba(
         raw_tensor: torch.Tensor, n_pack: int, bits: int, compression_dtype: torch.dtype = torch.int32
     ) -> torch.Tensor:
