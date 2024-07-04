@@ -305,7 +305,7 @@ class WeightOnlyLinear(torch.nn.Module):
         return unpacked_tensor
 
     @staticmethod
-    @numba.jit(nopython=True)
+    @numba.jit(nopython=True, parallel=True, fastmath=True)
     def pack_tensor_with_numpy_opt_np_numba(
         raw_tensor: np.ndarray, n_pack: int, bits: int, compression_dtype=np.int32
     ) -> np.ndarray:

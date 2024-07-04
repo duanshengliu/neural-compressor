@@ -26,7 +26,7 @@ from neural_compressor.torch.algorithms.layer_wise import load_empty_model
 MODEL_NAME = (
     "/home/sdp/.cache/huggingface/hub/models--Qwen--Qwen2-1.5B/snapshots/8a16abf2848eda07cc5253dec660bf1ce007ad7a"
 )
-MODEL_NAME = "/home/sdp/.cache/huggingface/hub/models--meta-llama--Llama-2-7b-chat-hf/snapshots/f5db02db724555f92da89c216ac04704f23d4590/"
+# MODEL_NAME = "/home/sdp/.cache/huggingface/hub/models--meta-llama--Llama-2-7b-chat-hf/snapshots/f5db02db724555f92da89c216ac04704f23d4590/"
 # model_name = "hf-internal-testing/tiny-random-GPTJForCausalLM"
 
 
@@ -142,7 +142,7 @@ def profiling_layer_wise(model_name):
         model_path=model_name,
     )
 
-    with torch.autograd.profiler.profile(with_stack=True, profile_memory=True, with_modules=True, use_cpu=True) as prof:
+    with torch.autograd.profiler.profile(with_modules=True, use_cpu=True) as prof:
         model = prepare(model, quant_config)
         model = convert(model)
         model = prepare(model, quant_config)
@@ -152,7 +152,7 @@ def profiling_layer_wise(model_name):
         # out = model(self.example_inputs)[0]
         inc_utils.summary_time_usage()
     pdb.set_trace()
-    prof.export_chrome_trace("trace_layer_wise2.json")
+    prof.export_chrome_trace("trace_layer_wise2_numba_with_modules.json")
 
 
 import click
@@ -216,6 +216,48 @@ WOQ Packing:
 RTN Quantizer Convert:
   Average time: 22558.74 ms
   Standard deviation: 737.73 ms
+  
+W/ Layer-wise + W/ numba.jit(parallel=True)
+Time Statistics:
+RTN Quantizer prepare:
+  Average time: 0.00 ms
+  Standard deviation: 0.00 ms
+_save_one_module:
+  Average time: 969.87 ms
+  Standard deviation: 115.53 ms
+load_module:
+  Average time: 4012.92 ms
+  Standard deviation: 297.74 ms
+quant_tensor:
+  Average time: 4508.80 ms
+  Standard deviation: 79.15 ms
+WOQ Packing:
+  Average time: 6695.64 ms
+  Standard deviation: 399.75 ms
+RTN Quantizer Convert:
+  Average time: 16484.22 ms
+  Standard deviation: 545.87 ms
+
+W/ Layer-wise + W/ numba.jit(parallel=True, fastmath=True)
+Time Statistics:
+RTN Quantizer prepare:
+  Average time: 0.01 ms
+  Standard deviation: 0.01 ms
+_save_one_module:
+  Average time: 961.15 ms
+  Standard deviation: 141.66 ms
+load_module:
+  Average time: 3766.79 ms
+  Standard deviation: 359.89 ms
+quant_tensor:
+  Average time: 4466.68 ms
+  Standard deviation: 70.07 ms
+WOQ Packing:
+  Average time: 6759.63 ms
+  Standard deviation: 970.41 ms
+RTN Quantizer Convert:
+  Average time: 16237.33 ms
+  Standard deviation: 1265.88 ms
 
 W/ Layer-wise
   Time Statistics:

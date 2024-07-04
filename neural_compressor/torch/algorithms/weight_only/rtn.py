@@ -137,7 +137,7 @@ class RTNQuantizer(Quantizer):
             # if MODULE_INDEX >= MAX_NUM_MODUBLES:
             #     break
             # MODULE_INDEX += 1
-            # if "layers.10" in name:
+            # if "layers.2" in name:
             #     logger.info("Early stop....... %s.", name)
             #     break
             if not isinstance(m, supported_layers):
