@@ -153,7 +153,7 @@ class RTNQuantizer(Quantizer):
                     m.weight = cast_fp8(m.weight, dtype, use_qdq=True)
                     continue
                 ####
-                logger.info("Apply RTN on module %s.", name)
+                logger.debug("Apply RTN on module %s.", name)
                 bits = weight_config[name].get("bits", 4)
                 group_size = weight_config[name]["group_size"]
                 scheme = weight_config[name]["scheme"]
@@ -187,17 +187,18 @@ class RTNQuantizer(Quantizer):
             logger.debug(log_msg)
 
             if use_layer_wise:
-                from neural_compressor.common.utils import DEFAULT_WORKSPACE
-                
+                with torch.autograd.profiler.record_function("load_module"):
+                    from neural_compressor.common.utils import DEFAULT_WORKSPACE
+                    
 
-                os.makedirs(LWQ_WORKSPACE, exist_ok=True)
-                if model_path == "":
-                    model_path = model.path
-                assert model_path, "model_path should not be None."
-                model_path = get_path(model_path)
+                    os.makedirs(LWQ_WORKSPACE, exist_ok=True)
+                    if model_path == "":
+                        model_path = model.path
+                    assert model_path, "model_path should not be None."
+                    model_path = get_path(model_path)
 
-                # load weight
-                load_module(model, name, model_path, device=device)
+                    # load weight
+                    load_module(model, name, model_path, device=device)
 
             # for only group_dim is 0 or only `transformers.Conv1D`, we need transpose weight.
             if is_transformers_imported():
@@ -211,17 +212,18 @@ class RTNQuantizer(Quantizer):
             if use_mse_search:
                 quantile = search_clip(m, bits, group_size, scheme, dtype, use_full_range)
             weight = weight.contiguous()
-            int_weight, scale, zp = quant_tensor(
-                weight,
-                dtype=dtype,
-                bits=bits,
-                group_size=group_size,
-                scheme=scheme,
-                quantile=quantile,
-                return_int=True,
-                full_range=use_full_range,
-                **double_quant_config,
-            )
+            with torch.autograd.profiler.record_function("quant_tensor"):
+                int_weight, scale, zp = quant_tensor(
+                    weight,
+                    dtype=dtype,
+                    bits=bits,
+                    group_size=group_size,
+                    scheme=scheme,
+                    quantile=quantile,
+                    return_int=True,
+                    full_range=use_full_range,
+                    **double_quant_config,
+                )
             int_weight = int_weight.t_().contiguous() if transpose else int_weight
             scale = scale.t_().contiguous() if transpose else scale
             zp = zp.t_().contiguous() if transpose and zp is not None else zp
@@ -246,9 +248,12 @@ class RTNQuantizer(Quantizer):
                 use_optimum_format=use_optimum_format,
                 device=device,
             )
-            new_module.pack(int_weight, scale, zp, m.bias)
+            with torch.autograd.profiler.record_function("new_module.pack"):
+                new_module.pack(int_weight, scale, zp, m.bias)
             if use_layer_wise:
                 # _clean_module(name, new_module, m)
+                from neural_compressor.torch.algorithms.layer_wise.utils import clean_module_weight
+                _save_one_module(new_module, name)
                 new_module = new_module.to_empty(device=torch.device("meta"))
                 m = m.to_empty(device=torch.device("meta"))
             if name == "":
