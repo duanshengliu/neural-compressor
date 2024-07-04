@@ -196,6 +196,26 @@ RTN Quantizer Convert:
   Average time: 37322.53 ms
   Standard deviation: 925.98 ms
 
+W/ Layer-wise + W/ numba.jit
+Time Statistics:
+RTN Quantizer prepare:
+  Average time: 0.01 ms
+  Standard deviation: 0.01 ms
+_save_one_module:
+  Average time: 1381.99 ms
+  Standard deviation: 218.42 ms
+load_module:
+  Average time: 4890.75 ms
+  Standard deviation: 349.02 ms
+quant_tensor:
+  Average time: 4653.05 ms
+  Standard deviation: 122.62 ms
+WOQ Packing:
+  Average time: 11299.44 ms
+  Standard deviation: 371.29 ms
+RTN Quantizer Convert:
+  Average time: 22558.74 ms
+  Standard deviation: 737.73 ms
 
 W/ Layer-wise
   Time Statistics:
@@ -241,7 +261,28 @@ RTN Quantizer Convert:
   Average time: 182878.02 ms
   Standard deviation: 2349.06 ms
 
-
+layer- llama-2-7b-chat-hf
+W/ Layer wise + NUMBA
+(llm) (base) sdp@9049fa09fd7b:inc$ python parse_log.py ./__llama7b_with_numba_log 
+Time Statistics:
+RTN Quantizer prepare:
+  Average time: 0.01 ms
+  Standard deviation: 0.00 ms
+_save_one_module:
+  Average time: 5522.62 ms
+  Standard deviation: 317.52 ms
+load_module:
+  Average time: 13653.93 ms
+  Standard deviation: 1357.25 ms
+quant_tensor:
+  Average time: 18416.14 ms
+  Standard deviation: 111.69 ms
+WOQ Packing:
+  Average time: 54574.91 ms
+  Standard deviation: 1673.82 ms
+RTN Quantizer Convert:
+  Average time: 93681.94 ms
+  Standard deviation: 3076.35 ms
 
 
 W/ Layer-wise

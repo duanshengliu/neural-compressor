@@ -46,8 +46,8 @@ class QDQLayer(torch.nn.Module):
         return X
 
 import neural_compressor.common.utils.utility as inc_utils
-
-
+import numba
+import os
 class WeightOnlyLinear(torch.nn.Module):
     def __init__(
         self,
@@ -304,6 +304,42 @@ class WeightOnlyLinear(torch.nn.Module):
                 accelerator.synchronize()
         return unpacked_tensor
 
+    @staticmethod
+    @numba.jit(nopython=True)
+    def pack_tensor_with_numpy_opt_np_numba(
+        raw_tensor: np.ndarray, n_pack: int, bits: int, compression_dtype=np.int32
+    ) -> np.ndarray:
+        """Packs the input tensor by combining elements into a specified bit-width format using NumPy.
+
+        Args:
+            raw_tensor (np.ndarray): The tensor to be packed. Shape: [out_features, in_features] or [1, in_features].
+            n_pack (int): The number of elements to be packed together.
+            bits (int): The number of bits for each element.
+            compression_dtype (np.dtype, optional): The data type of the compressed tensor. Defaults to np.int32.
+
+        Returns:
+            np.ndarray: The packed tensor.
+        """
+        out_features, in_features = raw_tensor.shape
+        new_in_features = (in_features + n_pack - 1) // n_pack
+        packed_tensor = np.zeros((out_features, new_in_features), dtype=compression_dtype)
+        raw_tensor = raw_tensor.astype(compression_dtype)
+
+        if bits == 4:
+            for i in range(new_in_features):
+                packed_tensor[:, i] = (
+                    (raw_tensor[:, i * n_pack + 7] << 28)
+                    | (raw_tensor[:, i * n_pack + 6] << 24)
+                    | (raw_tensor[:, i * n_pack + 5] << 20)
+                    | (raw_tensor[:, i * n_pack + 4] << 16)
+                    | (raw_tensor[:, i * n_pack + 3] << 12)
+                    | (raw_tensor[:, i * n_pack + 2] << 8)
+                    | (raw_tensor[:, i * n_pack + 1] << 4)
+                    | raw_tensor[:, i * n_pack]
+                )
+
+        return packed_tensor
+
     def pack_tensor_with_numpy(self, raw_tensor):
         raw_array = raw_tensor.cpu().numpy()
         target_len = np.ceil(raw_array.shape[1] / self.n_pack).astype(int)
@@ -345,6 +381,9 @@ class WeightOnlyLinear(torch.nn.Module):
         if "cuda" in self.device:
             return self.pack_tensor_with_torch(raw_tensor)
         else:
+            if os.environ.get("USE_NUMBA", "0") == "1":
+                packed_np_arr = self.pack_tensor_with_numpy_opt_np_numba(raw_tensor.numpy(), self.n_pack, self.bits, np.int32)
+                return torch.from_numpy(packed_np_arr)
             return self.pack_tensor_with_numpy(raw_tensor)
 
     def unpack_tensor(self, packed_tensor):
