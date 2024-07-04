@@ -46,6 +46,8 @@ class QDQLayer(torch.nn.Module):
         return X
 
 
+import os
+
 import numba
 
 
@@ -437,7 +439,7 @@ class WeightOnlyLinear(torch.nn.Module):
         return packed_tensor
 
     @staticmethod
-    @numba.jit(nopython=True)
+    @numba.jit(nopython=True, parallel=True)
     def pack_tensor_with_numpy_opt_np_numba(
         raw_tensor: np.ndarray, n_pack: int, bits: int, compression_dtype=np.int32
     ) -> np.ndarray:
@@ -631,10 +633,46 @@ class WeightOnlyLinear(torch.nn.Module):
         unpacked_tensor = torch.from_numpy(unpacked_array).to(device=packed_tensor.device)
         return unpacked_tensor
 
+    # @torch.compile()
+    @staticmethod
+    def pack_tensor_with_torch_static(
+        raw_tensor, n_pack: int, bits: int, compression_dtype=torch.int32
+    ) -> torch.Tensor:
+        target_len = math.ceil(raw_tensor.shape[1] / n_pack)
+        packed_tensor = torch.zeros(raw_tensor.shape[0], target_len, dtype=compression_dtype)
+        mask = torch.tensor(2**bits - 1, dtype=compression_dtype)
+        for j in range(packed_tensor.shape[1]):
+            start = n_pack * j
+            end = n_pack * (j + 1)
+            tmp = raw_tensor[:, start:end].type(compression_dtype)
+            tmp &= mask
+            for e in range(tmp.shape[1]):
+                tmp[:, e] = tmp[:, e] << (bits * e)
+                packed_tensor[:, j] |= tmp[:, e]
+        return packed_tensor
+
+    def pack_tensor_with_numpy_v5(self, raw_tensor):
+        raw_array = raw_tensor.cpu().numpy()
+        target_len = np.ceil(raw_array.shape[1] / self.n_pack).astype(int)
+        target_dtype = torch.tensor(0, dtype=self.compression_dtype).numpy().dtype
+        reshaped = raw_array.reshape(-1, self.n_pack)
+        packed_array = np.zeros(reshaped.shape[0], dtype=target_dtype)
+        for i in range(self.n_pack):
+            packed_array |= reshaped[:, i].astype(target_dtype) << (self.bits * i)
+
+        packed_tensor = torch.from_numpy(packed_array.reshape((raw_array.shape[0], target_len))).to(
+            device=raw_tensor.device
+        )
+        return packed_tensor
+
     def pack_tensor(self, raw_tensor):
+        if os.environ.get("USE_COMPILE", False):
+            return self.pack_tensor_with_torch_static(raw_tensor, self.n_pack, self.bits, self.compression_dtype)
         if "cuda" in raw_tensor.device.type:
             return self.pack_tensor_with_torch(raw_tensor)
         else:
+            if os.environ.get("USE_RESHAPE", "0") == "1":
+                return self.pack_tensor_with_numpy_v5(raw_tensor)
             return self.pack_tensor_with_numpy(raw_tensor)
 
     def unpack_tensor(self, packed_tensor):
