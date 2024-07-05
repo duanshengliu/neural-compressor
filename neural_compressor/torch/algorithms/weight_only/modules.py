@@ -651,6 +651,17 @@ class WeightOnlyLinear(torch.nn.Module):
                 packed_tensor[:, j] |= tmp[:, e]
         return packed_tensor
 
+    @staticmethod
+    def pack_tensor_with_reshape(raw_tensor, n_pack: int, bits: int, compression_dtype=torch.int32):
+        raw_array = raw_tensor.contiguous()
+        target_len = (raw_array.shape[1] + n_pack - 1) // n_pack
+        target_dtype = compression_dtype
+        reshaped = raw_array.reshape(-1, n_pack).to(target_dtype)
+        packed_array = torch.zeros(reshaped.shape[0], dtype=target_dtype)
+        for i in range(n_pack):
+            packed_array |= reshaped[:, i] << (bits * i)
+        return packed_array.reshape((raw_array.shape[0], target_len))
+
     def pack_tensor_with_numpy_v5(self, raw_tensor):
         raw_array = raw_tensor.cpu().numpy()
         target_len = np.ceil(raw_array.shape[1] / self.n_pack).astype(int)
