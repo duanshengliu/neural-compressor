@@ -61,6 +61,8 @@ parser.add_argument("--woq_group_dim", type=int, default=1)
 parser.add_argument("--woq_scheme", default="sym")
 parser.add_argument("--woq_use_mse_search", action="store_true")
 parser.add_argument("--woq_use_full_range", action="store_true")
+parser.add_argument("--use_layer_wise", action="store_true")
+parser.add_argument("--model_path", type=str)
 # =============GPTQ configs====================
 parser.add_argument("--gptq_actorder", action="store_true",
                     help="Whether to apply the activation order GPTQ heuristic.")
@@ -184,6 +186,11 @@ class Evaluator:
 
 
 def get_user_model():
+    tokenizer = AutoTokenizer.from_pretrained(args.model)
+    if args.use_layer_wise:
+        from neural_compressor.torch.algorithms.layer_wise import load_empty_model
+        model =load_empty_model(args.model_path)
+        return model, tokenizer
     torchscript = False
     if  args.woq_algo in ['AWQ', 'TEQ']:
         torchscript = True
@@ -193,6 +200,7 @@ def get_user_model():
         trust_remote_code=args.trust_remote_code,
         revision=args.revision,
     )
+    # breakpoint()
     tokenizer = AutoTokenizer.from_pretrained(args.model)
     user_model = user_model.float()
 
@@ -209,8 +217,12 @@ def get_user_model():
     user_model.eval()
     return user_model, tokenizer
 
+import neural_compressor.common.utils as inc_utils
 
-if args.quantize:
+
+
+@inc_utils.dump_elapsed_time("Total quant time")
+def main_quant(args):
     # dataset
     user_model, tokenizer = get_user_model()
     calib_dataset = load_dataset(args.dataset, split="train")
@@ -255,10 +267,18 @@ if args.quantize:
                 double_quant_dtype=args.double_quant_dtype,
                 double_quant_use_sym=args.double_quant_use_sym,
                 double_quant_group_size=args.double_quant_group_size,
+                use_layer_wise=args.use_layer_wise,
+                model_path=args.model_path
             )
         quant_config.set_local("lm_head", RTNConfig(dtype="fp32"))
         user_model = prepare(model=user_model, quant_config=quant_config)
         user_model = convert(model=user_model)
+    return user_model
+
+if args.quantize:
+    if args.woq_algo == "RTN":
+        main_quant(args)
+
     elif args.woq_algo == "GPTQ":
         from utils import DataloaderPreprocessor
         dataloaderPreprocessor = DataloaderPreprocessor(

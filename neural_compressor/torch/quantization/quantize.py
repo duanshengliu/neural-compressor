@@ -160,7 +160,11 @@ def prepare(
     return prepared_model
 
 
+import neural_compressor.common.utils as inc_util
+
+
 @log_process(mode=Mode.CONVERT)
+@inc_util.dump_elapsed_time()
 def convert(
     model: torch.nn.Module,
     quant_config: BaseConfig = None,
