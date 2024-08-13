@@ -23,7 +23,6 @@ Functions
 .. autoapisummary::
 
    neural_compressor.adaptor.torch_utils.bf16_convert.Convert
-   neural_compressor.adaptor.torch_utils.bf16_convert.bf16_symbolic_trace
 
 
 Module Contents
@@ -47,19 +46,5 @@ Module Contents
 
    :returns: model with mixed precision.
    :rtype: mixed_precision_model (object)
-
-
-.. py:function:: bf16_symbolic_trace(model, fx_sub_module_list, prefix='')
-
-   Symbolic trace for bf16 models.
-
-   :param model: the input model.
-   :type model: object
-   :param fx_sub_module_list: _description_
-   :type fx_sub_module_list: list
-   :param prefix: prefix of op name.
-   :type prefix: str
-
-   :returns: model (object)
 
 

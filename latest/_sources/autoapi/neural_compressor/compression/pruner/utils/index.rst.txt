@@ -28,7 +28,6 @@ Functions
    neural_compressor.compression.pruner.utils.parse_last_linear_tf
    neural_compressor.compression.pruner.utils.parse_to_prune
    neural_compressor.compression.pruner.utils.parse_to_prune_tf
-   neural_compressor.compression.pruner.utils.generate_pruner_config
    neural_compressor.compression.pruner.utils.get_layers
    neural_compressor.compression.pruner.utils.collect_layer_inputs
 
@@ -164,16 +163,6 @@ Module Contents
    :type config: string
    :param model: The model to be pruned.
    :type model: tf.keras.Model
-
-
-.. py:function:: generate_pruner_config(info)
-
-   Generate pruner config object from prune information.
-
-   :param info: A dotdict that saves prune information.
-
-   :returns: A pruner config object.
-   :rtype: pruner
 
 
 .. py:function:: get_layers(model)

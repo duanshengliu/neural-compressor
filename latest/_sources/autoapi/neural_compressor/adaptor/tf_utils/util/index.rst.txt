@@ -36,7 +36,6 @@ Functions
    neural_compressor.adaptor.tf_utils.util.get_model_input_shape
    neural_compressor.adaptor.tf_utils.util.get_tensor_val_from_graph_node
    neural_compressor.adaptor.tf_utils.util.int8_node_name_reverse
-   neural_compressor.adaptor.tf_utils.util.tf_diagnosis_helper
    neural_compressor.adaptor.tf_utils.util.generate_feed_dict
    neural_compressor.adaptor.tf_utils.util.get_weight_from_input_tensor
    neural_compressor.adaptor.tf_utils.util.apply_inlining
@@ -216,11 +215,6 @@ Module Contents
 .. py:function:: int8_node_name_reverse(node)
 
    Reverse int8 node name.
-
-
-.. py:function:: tf_diagnosis_helper(fp32_model, quan_model, tune_cfg, save_path)
-
-   Tensorflow diagnosis helper function.
 
 
 .. py:function:: generate_feed_dict(input_tensor, inputs)
