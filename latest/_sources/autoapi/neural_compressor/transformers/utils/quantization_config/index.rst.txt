@@ -1,0 +1,62 @@
+neural_compressor.transformers.utils.quantization_config
+========================================================
+
+.. py:module:: neural_compressor.transformers.utils.quantization_config
+
+.. autoapi-nested-parse::
+
+   Intel Neural Compressor Transformers-like Config.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   neural_compressor.transformers.utils.quantization_config.QuantizationMethod
+   neural_compressor.transformers.utils.quantization_config.INCQuantizationConfigMixin
+   neural_compressor.transformers.utils.quantization_config.RtnConfig
+   neural_compressor.transformers.utils.quantization_config.GPTQConfig
+
+
+Module Contents
+---------------
+
+.. py:class:: QuantizationMethod
+
+
+
+   str(object='') -> str
+   str(bytes_or_buffer[, encoding[, errors]]) -> str
+
+   Create a new string object from the given object. If encoding or
+   errors is specified, then the object must expose a data buffer
+   that will be decoded using the given encoding and error handler.
+   Otherwise, returns the result of object.__str__() (if defined)
+   or repr(object).
+   encoding defaults to sys.getdefaultencoding().
+   errors defaults to 'strict'.
+
+
+.. py:class:: INCQuantizationConfigMixin
+
+
+
+   Mixin class for quantization config.
+
+
+.. py:class:: RtnConfig(bits: int = 4, group_size: int = 32, compute_dtype: Any = None, scale_dtype: Any = None, sym: bool = True, use_layer_wise: bool = False, **kwargs)
+
+
+
+   Mixin class for quantization config.
+
+
+.. py:class:: GPTQConfig(bits: int = 4, tokenizer: Any = None, dataset: str = 'NeelNanda/pile-10k', batch_size: int = 8, group_size: int = 32, compute_dtype: Any = None, scale_dtype: Any = None, sym: bool = True, blocksize: int = 128, damp_percent: float = 0.1, desc_act: bool = False, n_samples: int = 128, seq_len: int = 2048, static_groups: bool = False, use_mse_search: bool = False, true_sequential: bool = False, use_layer_wise: bool = False, **kwargs)
+
+
+
+   Mixin class for quantization config.
+
+
