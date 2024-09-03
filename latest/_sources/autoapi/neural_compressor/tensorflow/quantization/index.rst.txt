@@ -25,7 +25,6 @@ Submodules
    :maxdepth: 1
 
    /autoapi/neural_compressor/tensorflow/quantization/algorithm_entry/index
-   /autoapi/neural_compressor/tensorflow/quantization/autotune/index
    /autoapi/neural_compressor/tensorflow/quantization/config/index
    /autoapi/neural_compressor/tensorflow/quantization/quantize/index
 
