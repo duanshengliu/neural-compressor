@@ -5,7 +5,7 @@ neural_compressor.transformers.utils
 
 .. autoapi-nested-parse::
 
-   initialization.
+   Utils for optimization.
 
 
 

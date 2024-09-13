@@ -18,6 +18,9 @@ Classes
    neural_compressor.transformers.utils.quantization_config.INCQuantizationConfigMixin
    neural_compressor.transformers.utils.quantization_config.RtnConfig
    neural_compressor.transformers.utils.quantization_config.GPTQConfig
+   neural_compressor.transformers.utils.quantization_config.AwqConfig
+   neural_compressor.transformers.utils.quantization_config.TeqConfig
+   neural_compressor.transformers.utils.quantization_config.AutoRoundConfig
 
 
 Module Contents
@@ -46,14 +49,35 @@ Module Contents
    Mixin class for quantization config.
 
 
-.. py:class:: RtnConfig(bits: int = 4, group_size: int = 32, compute_dtype: Any = None, scale_dtype: Any = None, sym: bool = True, use_layer_wise: bool = False, **kwargs)
+.. py:class:: RtnConfig(bits: int = 4, group_size: int = 32, compute_dtype: Any = None, scale_dtype: Any = None, sym: bool = True, use_layer_wise: bool = False, quant_lm_head: bool = False, **kwargs)
 
 
 
    Mixin class for quantization config.
 
 
-.. py:class:: GPTQConfig(bits: int = 4, tokenizer: Any = None, dataset: str = 'NeelNanda/pile-10k', batch_size: int = 8, group_size: int = 32, compute_dtype: Any = None, scale_dtype: Any = None, sym: bool = True, blocksize: int = 128, damp_percent: float = 0.1, desc_act: bool = False, n_samples: int = 128, seq_len: int = 2048, static_groups: bool = False, use_mse_search: bool = False, true_sequential: bool = False, use_layer_wise: bool = False, **kwargs)
+.. py:class:: GPTQConfig(bits: int = 4, tokenizer: Any = None, dataset: str = 'NeelNanda/pile-10k', batch_size: int = 8, group_size: int = 32, compute_dtype: Any = None, scale_dtype: Any = None, sym: bool = True, blocksize: int = 128, damp_percent: float = 0.1, desc_act: bool = False, n_samples: int = 128, seq_len: int = 2048, static_groups: bool = False, use_mse_search: bool = False, true_sequential: bool = False, use_layer_wise: bool = False, quant_lm_head: bool = False, **kwargs)
+
+
+
+   Mixin class for quantization config.
+
+
+.. py:class:: AwqConfig(bits: int = 4, tokenizer: Any = None, dataset: str = 'NeelNanda/pile-10k', group_size: int = 32, compute_dtype: Any = None, weight_dtype: Any = None, scale_dtype: Any = None, use_layer_wise: bool = False, n_samples: int = 128, seq_len: int = 2048, auto_scale: bool = True, auto_clip: bool = True, zero_point: bool = True, absorb_layer_dict: dict = {}, quant_lm_head: bool = False, **kwargs)
+
+
+
+   Mixin class for quantization config.
+
+
+.. py:class:: TeqConfig(bits: int = 4, tokenizer: Any = None, dataset: str = 'NeelNanda/pile-10k', group_size: int = 32, compute_dtype: Any = None, weight_dtype: Any = None, scale_dtype: Any = None, use_layer_wise: bool = False, n_samples: int = 128, seq_len: int = 2048, sym: bool = True, absorb_layer_dict: dict = {}, quant_lm_head: bool = False, **kwargs)
+
+
+
+   Mixin class for quantization config.
+
+
+.. py:class:: AutoRoundConfig(bits: int = 4, tokenizer: Any = None, dataset: str = 'NeelNanda/pile-10k', group_size: int = 128, compute_dtype: Any = None, weight_dtype: Any = None, scale_dtype: Any = None, sym: bool = False, lr: float = None, minmax_lr: float = None, disable_quanted_input: bool = True, n_samples: int = 128, seq_len: int = 2048, iters: int = 200, use_layer_wise: bool = False, quant_lm_head: bool = False, **kwargs)
 
 
 
