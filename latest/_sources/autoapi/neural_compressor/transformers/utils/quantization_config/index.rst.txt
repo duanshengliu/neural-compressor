@@ -63,7 +63,7 @@ Module Contents
    Mixin class for quantization config.
 
 
-.. py:class:: AwqConfig(bits: int = 4, tokenizer: Any = None, dataset: str = 'NeelNanda/pile-10k', group_size: int = 32, compute_dtype: Any = None, weight_dtype: Any = None, scale_dtype: Any = None, use_layer_wise: bool = False, n_samples: int = 128, seq_len: int = 2048, auto_scale: bool = True, auto_clip: bool = True, zero_point: bool = True, absorb_layer_dict: dict = {}, quant_lm_head: bool = False, **kwargs)
+.. py:class:: AwqConfig(bits: int = 4, tokenizer: Any = None, dataset: str = 'NeelNanda/pile-10k', group_size: int = 32, compute_dtype: Any = None, weight_dtype: Any = None, scale_dtype: Any = None, use_layer_wise: bool = False, n_samples: int = 128, seq_len: int = 2048, auto_scale: bool = True, auto_clip: bool = True, zero_point: bool = True, absorb_layer_dict: dict = {}, quant_lm_head: bool = False, backend: str = None, **kwargs)
 
 
 
