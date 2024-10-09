@@ -87,6 +87,8 @@ parser.add_argument("--folding", action="store_true",
                     help="Allow insert mul before linear when the scale cannot be absorbed by last layer for TEQ/AWQ.")
 parser.add_argument('--absorb_layer_dict', type=dict, default={},
                     help="The layer dict that scale can be absorbed for TEQ/AWQ.")
+parser.add_argument("--eval_batch_size", default=1, type=int, help="batch size for evaluation.")
+parser.add_argument("--limit", default=100, type=int, help="limit for evaluation.")
 # ============AUTOROUND configs==============
 parser.add_argument(
     "--lr",
@@ -101,6 +103,7 @@ parser.add_argument(
     help="minmax learning rate, if None,it will beset to be the same with lr",
 )
 parser.add_argument("--autoround_iters", default=200, type=int, help="num iters for autoround calibration.")
+
 parser.add_argument("--autoround_nsamples", default=128, type=int, help="num samples for autoround calibration.")
 parser.add_argument(
     "--disable_quanted_input",
@@ -447,26 +450,44 @@ else:
     user_model, tokenizer = get_user_model()
 
 
+# if args.accuracy:
+#     user_model.eval()
+#     from neural_compressor.evaluation.lm_eval import evaluate, LMEvalParser
+#     eval_args = LMEvalParser(
+#         model="hf",
+#         user_model=user_model,
+#         tokenizer=tokenizer,
+#         batch_size=args.batch_size,
+#         tasks=args.tasks,
+#         device="hpu" if is_hpex_available() else "cpu",
+#     )
+#     results = evaluate(eval_args)
+#     for task_name in args.tasks.split(","):
+#         if task_name == "wikitext":
+#             acc = results["results"][task_name]["word_perplexity,none"]
+#         else:
+#             acc = results["results"][task_name]["acc,none"]
+#     print("Accuracy: %.5f" % acc)
+#     print('Batch size = %d' % args.batch_size)
+
+
+
+
 if args.accuracy:
-    user_model.eval()
     from neural_compressor.evaluation.lm_eval import evaluate, LMEvalParser
-    eval_args = LMEvalParser(
-        model="hf",
-        user_model=user_model,
-        tokenizer=tokenizer,
-        batch_size=args.batch_size,
-        tasks=args.tasks,
-        device="hpu" if is_hpex_available() else "cpu",
-    )
-    results = evaluate(eval_args)
+    model_args="pretrained="+args.model+",trust_remote_code="+str(args.trust_remote_code)
+    args = LMEvalParser(model = "hf",
+                        model_args=model_args,
+                        tasks = args.tasks,
+                        device = "cpu",
+                        batch_size = args.eval_batch_size,
+                        limit=args.limit,)
+    results = evaluate(args)
     for task_name in args.tasks.split(","):
         if task_name == "wikitext":
-            acc = results["results"][task_name]["word_perplexity,none"]
+            print("Accuracy for %s is: %s" % (task_name, results["results"][task_name]["word_perplexity,none"]))
         else:
-            acc = results["results"][task_name]["acc,none"]
-    print("Accuracy: %.5f" % acc)
-    print('Batch size = %d' % args.batch_size)
-
+            print("Accuracy for %s is: %s" % (task_name, results["results"][task_name]["acc,none"]))
 if args.performance:
     user_model.eval()
     from neural_compressor.evaluation.lm_eval import evaluate, LMEvalParser
