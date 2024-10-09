@@ -26,6 +26,7 @@
 
 import os
 from abc import ABC, abstractmethod
+from functools import lru_cache
 from typing import Any, Callable, List
 
 import torch
@@ -392,6 +393,7 @@ class HPU_Accelerator(Auto_Accelerator):  # pragma: no cover
         return htcore.mark_step()
 
 
+@lru_cache(maxsize=None)
 def auto_detect_accelerator(device_name="auto") -> Auto_Accelerator:
     """Automatically detects and selects the appropriate accelerator.
 

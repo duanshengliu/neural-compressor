@@ -16,6 +16,7 @@
 
 import copy
 from collections import OrderedDict
+from typing import Dict, List, Tuple, Union
 
 import torch
 
@@ -32,6 +33,35 @@ from .utility import (
     replace_forward,
     set_module,
 )
+
+
+def see_memory_usage(message, force=True):
+    # Modified from DeepSpeed
+    import gc
+    import logging
+
+    import torch.distributed as dist
+
+    if not force:
+        return
+    if dist.is_initialized() and not dist.get_rank() == 0:
+        return
+
+    # python doesn't do real-time garbage collection so do it explicitly to get the correct RAM reports
+    gc.collect()
+
+    # Print message except when distributed but not rank 0
+    logging.warning(message)
+    logging.warning(
+        f"AllocatedMem {round(torch.cuda.memory_allocated() / (1024 * 1024 * 1024),2 )} GB \
+        MaxAllocatedMem {round(torch.cuda.max_memory_allocated() / (1024 * 1024 * 1024),2)} GB \
+        ReservedMem {round(torch.cuda.memory_reserved() / (1024 * 1024 * 1024),2)} GB \
+        MaxReservedMem {round(torch.cuda.max_memory_reserved() / (1024 * 1024 * 1024))} GB "
+    )
+
+    # get the peak memory to report correct data, so reset the counter for the next call
+    torch.cuda.reset_peak_memory_stats()
+
 
 __all__ = ["AWQQuantizer"]
 
@@ -153,6 +183,41 @@ def _get_act_scale(input_val):
     return tmp.mean(0)
 
 
+def move_data_to_device(
+    data: Union[torch.Tensor, Tuple[torch.Tensor], List[torch.Tensor], Dict[str, torch.Tensor]], device: str
+):
+    if isinstance(data, torch.Tensor):
+        return data.to(device)
+    elif isinstance(data, tuple):
+        return tuple([move_data_to_device(x, device) for x in data])
+    elif isinstance(data, list):
+        return list([move_data_to_device(x, device) for x in data])
+    elif isinstance(data, dict):
+        return {k: move_data_to_device(v, device) for k, v in data.items()}
+    else:
+        return data
+
+
+def move_data_to_accelerator(
+    data: Union[torch.Tensor, Tuple[torch.Tensor], List[torch.Tensor], Dict[str, torch.Tensor]],
+):
+    device = get_accelerator().current_device()
+    return move_data_to_device(data, device)
+
+
+def offload_data_to_cpu(data: Union[torch.Tensor, Tuple[torch.Tensor], List[torch.Tensor], Dict[str, torch.Tensor]]):
+    return move_data_to_device(data, "cpu")
+
+
+def move_model_to_accelerator(model: torch.nn.Module):
+    device = get_accelerator().current_device()
+    return model.to(device)
+
+
+def offload_model_to_cpu(model: torch.nn.Module):
+    return model.to("cpu")
+
+
 class ActAwareWeightQuant:
     """Implementation of Activation-aware Weight quantization (AWQ) algo."""
 
@@ -195,6 +260,7 @@ class ActAwareWeightQuant:
         self.model.to(device)
         self.example_inputs = self.example_inputs.to(device)
 
+    @torch.no_grad()
     def quantize(self, use_auto_scale=True, use_mse_search=True, folding=False, return_int=False):
         """Execute AWQ quantization.
 
@@ -234,6 +300,13 @@ class ActAwareWeightQuant:
             block = fetch_module(self.model, block_name)
             module_hook_config = {v[0].split(block_name + ".")[1]: ["input"] for v in module_list}
 
+            self.total_block_args, self.total_block_kwargs = move_data_to_accelerator(
+                (self.total_block_args, self.total_block_kwargs)
+            )
+            block = move_model_to_accelerator(block)
+            see_memory_usage(message=f"after move  block {i+1}/{self.block_num} to accelerator")
+
+            @torch.no_grad()
             def block_calibration(model):
                 for args, kwargs in zip(self.total_block_args, self.total_block_kwargs):
                     model(*args, **kwargs)
@@ -256,7 +329,12 @@ class ActAwareWeightQuant:
             # Step 5: search best clip range for linears in one block and save to weight_config
             if use_mse_search:
                 self.search_clip(block_name, module_list, input_values)
+            # FIXME: Add mark_step for hpu
+            # self.total_block_args, self.total_block_kwargs = offload_data_to_cpu((self.total_block_args, self.total_block_kwargs))
+            see_memory_usage(message=f"after block {i+1}/{self.block_num}")
+            block = offload_model_to_cpu(block)
         # Step 6: apply clip range in weight_config when quantizing model weights
+        self.model = move_model_to_accelerator(self.model)
         self.apply_quantize_with_clip(return_int)
         return self.model
 
