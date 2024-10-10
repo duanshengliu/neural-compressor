@@ -489,7 +489,6 @@ if args.accuracy:
             print("Accuracy for %s is: %s" % (task_name, results["results"][task_name]["word_perplexity,none"]))
         else:
             print("Accuracy for %s is: %s" % (task_name, results["results"][task_name]["acc,none"]))
-
 if args.performance:
     user_model.eval()
     from neural_compressor.evaluation.lm_eval import evaluate, LMEvalParser
