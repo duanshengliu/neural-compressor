@@ -322,6 +322,8 @@
 <ul class="simple">
 <li><p>Saving quantized model should be executed before the optimize_transformers function is called.</p></li>
 <li><p>The optimize_transformers function is designed to optimize transformer-based models within frontend Python modules, with a particular focus on Large Language Models (LLMs). It provides optimizations for both model-wise and content-generation-wise. The detail of <code class="docutils literal notranslate"><span class="pre">optimize_transformers</span></code>, please refer to <a class="reference external" href="https://github.com/intel/intel-extension-for-pytorch/blob/xpu-main/docs/tutorials/llm/llm_optimize_transformers.html">the link</a>.</p></li>
+<li><p>The quantization process is performed on the CPU accelerator by default. Users can override this setting by specifying the environment variable <code class="docutils literal notranslate"><span class="pre">INC_TARGET_DEVICE</span></code>. Usage on bash: <code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">INC_TARGET_DEVICE=xpu</span></code>.</p></li>
+<li><p>For Linux systems, users need to configure the environment variables appropriately to achieve optimal performance. For example, set the OMP_NUM_THREADS explicitly. For processors with hybrid architecture (including both P-cores and E-cores), it is recommended to bind tasks to all P-cores using taskset.</p></li>
 </ul>
 </div></blockquote>
 </section>
@@ -346,7 +348,7 @@
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
     provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   <jinja2.runtime.BlockReference object at 0x7f58e4a76f80> 
+   <jinja2.runtime.BlockReference object at 0x7f5b1c6553c0> 
   <p></p><div><a href='https://www.intel.com/content/www/us/en/privacy/intel-cookie-notice.html' data-cookie-notice='true'>Cookies</a> <a href='https://www.intel.com/content/www/us/en/privacy/intel-privacy-notice.html'>| Privacy</a></div>
 
 
