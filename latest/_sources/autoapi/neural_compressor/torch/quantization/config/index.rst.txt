@@ -254,7 +254,7 @@ Module Contents
    :returns: the default HQQ config.
 
 
-.. py:class:: FP8Config(dump_stats_path: str = './hqt_output/measure', fp8_config: str = 'E4M3', hp_dtype: str = 'bf16', blocklist: dict = {'names': [], 'types': ()}, allowlist: dict = {'names': [], 'types': FP8_WHITE_LIST}, mode: str = 'AUTO', scale_method: str = 'maxabs_hw', scale_params: dict = {}, observer: str = 'maxabs', mod_dict: dict = {}, measure_exclude: str = 'OUTPUT', **kwargs)
+.. py:class:: FP8Config(dump_stats_path: str = './hqt_output/measure', fp8_config: str = 'E4M3', hp_dtype: str = 'bf16', blocklist: dict = {'names': [], 'types': ()}, allowlist: dict = {'names': [], 'types': FP8_WHITE_LIST}, mode: str = 'AUTO', scale_method: str = 'maxabs_hw', scale_params: dict = {}, observer: str = 'maxabs', mod_dict: dict = {}, measure_exclude: str = 'OUTPUT', fake_quant: bool = False, scale_format: str = 'const', **kwargs)
 
 
 
