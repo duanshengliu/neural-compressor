@@ -1,0 +1,79 @@
+trigger: none
+
+pr:
+  autoCancel: true
+  drafts: false
+  branches:
+    include:
+      - master
+  paths:
+    include:
+      - neural_compressor
+      - test
+      - setup.py
+      - requirements.txt
+      - requirements_pt.txt
+      - requirements_tf.txt
+      - .azure-pipelines/import-check.yml
+
+pool:
+  vmImage: "ubuntu-latest"
+
+stages:
+  - stage: check_2x
+    displayName: Check 2.x import
+    dependsOn: []
+    jobs:
+      - job: Check 2.x import
+        displayName: Check 2.x import
+        steps:
+          - task: UsePythonVersion@0
+            displayName: "Use Python 3.10"
+            inputs:
+              versionSpec: "3.10"
+          - script: |
+              python -m pip install --no-cache-dir -r requirements.txt
+              python setup.py bdist_wheel
+              pip install dist/neural_compressor*.whl --force-reinstall
+              python -c "import neural_compressor"
+            displayName: "build INC"
+          - script: |
+              python -c "import neural_compressor"
+            displayName: "import neural_compressor"
+
+  - stage: check_3x
+    displayName: Check 3.x import
+    dependsOn: []
+    jobs:
+      - job: check_3x_pt
+        displayName: Check 3.x-pt import
+        steps:
+          - task: UsePythonVersion@0
+            displayName: "Use Python 3.10"
+            inputs:
+              versionSpec: "3.10"
+          - script: |
+              python -m pip install --no-cache-dir -r requirements.txt
+              python -m pip install --no-cache-dir -r requirements_pt.txt
+              python setup.py bdist_wheel
+              pip install dist/neural_compressor*.whl --force-reinstall
+            displayName: "build INC"
+          - script: |
+              python -c "import neural_compressor"
+            displayName: "import neural_compressor"
+      - job: check_3x_tf
+        displayName: Check 3.x-tf import
+        steps:
+          - task: UsePythonVersion@0
+            displayName: "Use Python 3.10"
+            inputs:
+              versionSpec: "3.10"
+          - script: |
+              python -m pip install --no-cache-dir -r requirements.txt
+              python -m pip install --no-cache-dir -r requirements_tf.txt
+              python setup.py bdist_wheel
+              pip install dist/neural_compressor*.whl --force-reinstall
+            displayName: "build INC"
+          - script: |
+              python -c "import neural_compressor"
+            displayName: "import neural_compressor"
