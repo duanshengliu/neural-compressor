@@ -39,9 +39,15 @@ stages:
               pip list
             displayName: "build INC"
           - script: |
+              set -xe
               cd /
               python -c "import neural_compressor"
             displayName: "import neural_compressor"
+          - script: |
+              set -xe
+              cd /
+              python -c "import neural"
+            displayName: "import neural"
 
   - stage: check_3x
     displayName: Check 3.x import
@@ -63,6 +69,7 @@ stages:
               pip list
             displayName: "build INC"
           - script: |
+              set -xe
               cd /
               python -c "import neural_compressor"
             displayName: "import neural_compressor"
@@ -82,6 +89,7 @@ stages:
               pip list
             displayName: "build INC"
           - script: |
+              set -xe
               cd /
               python -c "import neural_compressor"
             displayName: "import neural_compressor"
