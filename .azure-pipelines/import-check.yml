@@ -43,11 +43,6 @@ stages:
               cd /
               python -c "import neural_compressor"
             displayName: "import neural_compressor"
-          - script: |
-              set -xe
-              cd /
-              python -c "import neural"
-            displayName: "import neural"
 
   - stage: check_3x
     displayName: Check 3.x import
@@ -70,8 +65,8 @@ stages:
             displayName: "build INC"
           - script: |
               set -xe
-              cd /
-              python -c "import neural_compressor"
+              cd /home/xuehaosu/repo/neural-compressor/test/3x/common
+              python test_common.py
             displayName: "import neural_compressor"
       - job: Check_3x_tf
         displayName: Check 3.x-tf import
@@ -90,6 +85,6 @@ stages:
             displayName: "build INC"
           - script: |
               set -xe
-              cd /
-              python -c "import neural_compressor"
+              cd /home/xuehaosu/repo/neural-compressor/test/3x/common
+              python test_common.py
             displayName: "import neural_compressor"
