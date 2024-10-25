@@ -65,7 +65,7 @@ stages:
             displayName: "build INC"
           - script: |
               set -xe
-              cd /home/xuehaosu/repo/neural-compressor/test/3x/common
+              cd test/3x/common
               python test_common.py
             displayName: "import neural_compressor"
       - job: Check_3x_tf
@@ -85,6 +85,6 @@ stages:
             displayName: "build INC"
           - script: |
               set -xe
-              cd /home/xuehaosu/repo/neural-compressor/test/3x/common
+              cd test/3x/common
               python test_common.py
             displayName: "import neural_compressor"
