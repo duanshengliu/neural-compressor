@@ -32,12 +32,14 @@ stages:
             inputs:
               versionSpec: "3.10"
           - script: |
+              pip install --upgrade wheel
               python -m pip install --no-cache-dir -r requirements.txt
               python setup.py bdist_wheel
               pip install dist/neural_compressor*.whl --force-reinstall
-              python -c "import neural_compressor"
+              pip list
             displayName: "build INC"
           - script: |
+              cd /
               python -c "import neural_compressor"
             displayName: "import neural_compressor"
 
@@ -53,12 +55,15 @@ stages:
             inputs:
               versionSpec: "3.10"
           - script: |
+              pip install --upgrade wheel
               python -m pip install --no-cache-dir -r requirements.txt
               python -m pip install --no-cache-dir -r requirements_pt.txt
               python setup.py bdist_wheel
               pip install dist/neural_compressor*.whl --force-reinstall
+              pip list
             displayName: "build INC"
           - script: |
+              cd /
               python -c "import neural_compressor"
             displayName: "import neural_compressor"
       - job: Check_3x_tf
@@ -69,11 +74,14 @@ stages:
             inputs:
               versionSpec: "3.10"
           - script: |
+              pip install --upgrade wheel
               python -m pip install --no-cache-dir -r requirements.txt
               python -m pip install --no-cache-dir -r requirements_tf.txt
               python setup.py bdist_wheel
               pip install dist/neural_compressor*.whl --force-reinstall
+              pip list
             displayName: "build INC"
           - script: |
+              cd /
               python -c "import neural_compressor"
             displayName: "import neural_compressor"
