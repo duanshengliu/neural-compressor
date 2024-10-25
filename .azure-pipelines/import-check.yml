@@ -24,7 +24,7 @@ stages:
     displayName: Check 2.x import
     dependsOn: []
     jobs:
-      - job: Check 2.x import
+      - job: Check_2x
         displayName: Check 2.x import
         steps:
           - task: UsePythonVersion@0
@@ -45,7 +45,7 @@ stages:
     displayName: Check 3.x import
     dependsOn: []
     jobs:
-      - job: check_3x_pt
+      - job: Check_3x_pt
         displayName: Check 3.x-pt import
         steps:
           - task: UsePythonVersion@0
@@ -61,7 +61,7 @@ stages:
           - script: |
               python -c "import neural_compressor"
             displayName: "import neural_compressor"
-      - job: check_3x_tf
+      - job: Check_3x_tf
         displayName: Check 3.x-tf import
         steps:
           - task: UsePythonVersion@0
