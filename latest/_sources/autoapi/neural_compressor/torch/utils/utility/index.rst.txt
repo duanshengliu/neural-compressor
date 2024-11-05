@@ -14,7 +14,6 @@ Functions
 
 .. autoapisummary::
 
-   neural_compressor.torch.utils.utility.is_optimum_habana_available
    neural_compressor.torch.utils.utility.register_algo
    neural_compressor.torch.utils.utility.fetch_module
    neural_compressor.torch.utils.utility.set_module
@@ -40,18 +39,6 @@ Functions
 
 Module Contents
 ---------------
-
-.. py:function:: is_optimum_habana_available()
-
-   Checks if the Optimum Habana module is available for use with the transformers library.
-
-   This function checks two conditions:
-   1. If the `optimum` package is available using `transformers.utils.import_utils.is_optimum_available`.
-   2. If the `optimum.habana` module can be found using `importlib.util.find_spec`.
-
-   :returns: True if Optimum Habana is available, False otherwise.
-   :rtype: bool
-
 
 .. py:function:: register_algo(name)
 
